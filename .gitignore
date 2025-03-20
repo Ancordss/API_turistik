@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Directorios de dependencias globales
+/.pnp
+/.pnp.js
+
+# Archivos de log
+*.log
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Archivos de compilación y temporales
+dist/
+build/
+coverage/
+
+# Archivos de configuraciones del editor
+.vscode/
+.idea/
+
+# Archivos generados por el sistema
+.DS_Store
+Thumbs.db
+
+# Otros archivos que no quieras rastrear
+*.tgz
+*.bak
+
+# guardar la billetera, la podes encontar en el zip
+Wallet_turistik
+Wallet_turistik.zip
