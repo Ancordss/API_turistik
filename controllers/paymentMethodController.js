@@ -1,8 +1,68 @@
 const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
+const jwt = require('jsonwebtoken');
 
-// Función para obtener todos los métodos de pago de un usuario
+// Middleware para verificar el token
+const verifyToken = (req, res, next) => {
+  // Obtener el token de los encabezados
+  const token = req.headers['authorization'];
+
+  if (!token) {
+    return res.status(403).json({ message: 'Acceso denegado, token no encontrado' });
+  }
+
+  // Verificar el token
+  try {
+    const decoded = jwt.verify(token, 'mi_clave_secreta');
+    req.userId = decoded.userId;
+    req.userType = decoded.userType;
+    next();  // Pasa al siguiente middleware o controlador
+  } catch (error) {
+    return res.status(401).json({ message: 'Token inválido o expirado' });
+  }
+};
+
+module.exports = { verifyToken };
+
+
+
+/**
+ * @swagger
+ * /api/paymentMethods/{userId}:
+ *   get:
+ *     summary: Obtener todos los métodos de pago de un usuario
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: ID del usuario cuyos métodos de pago se desean obtener
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de métodos de pago obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   payment_id:
+ *                     type: integer
+ *                   user_id:
+ *                     type: integer
+ *                   amount:
+ *                     type: number
+ *                     format: float
+ *                   method:
+ *                     type: string
+ *                   payment_date:
+ *                     type: string
+ *                   user_name:
+ *                     type: string
+ */
 const getPaymentMethods = async (req, res) => {
-  const { userId } = req.params;  // Obtener el ID del usuario desde los parámetros de la URL
+  const { userId } = req.params;
 
   try {
     const [paymentMethods, metadata] = await sequelize.query(`
@@ -24,14 +84,52 @@ const getPaymentMethods = async (req, res) => {
       type: sequelize.QueryTypes.SELECT,
     });
 
-    res.json(paymentMethods);  // Devuelve los resultados obtenidos en formato JSON
+    res.json(paymentMethods);
   } catch (error) {
     console.error('Error al obtener los métodos de pago:', error);
     res.status(500).json({ message: 'Error al obtener los métodos de pago' });
   }
 };
 
-// Función para crear un nuevo método de pago
+/**
+ * @swagger
+ * /api/paymentMethods:
+ *   post:
+ *     summary: Crear un nuevo método de pago
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_id:
+ *                 type: integer
+ *               amount:
+ *                 type: number
+ *                 format: float
+ *               method:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Método de pago creado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 payment_id:
+ *                   type: integer
+ *                 user_id:
+ *                   type: integer
+ *                 amount:
+ *                   type: number
+ *                   format: float
+ *                 method:
+ *                   type: string
+ *                 payment_date:
+ *                   type: string
+ */
 const createPaymentMethod = async (req, res) => {
   const { User_ID, Amount, Method } = req.body;
 
@@ -47,16 +145,45 @@ const createPaymentMethod = async (req, res) => {
       type: sequelize.QueryTypes.INSERT,
     });
 
-    res.status(201).json(newPaymentMethod[0]);  // Devolver el nuevo método de pago creado
+    res.status(201).json(newPaymentMethod[0]);
   } catch (error) {
     console.error('Error al crear el método de pago:', error);
     res.status(500).json({ message: 'Error al crear el método de pago' });
   }
 };
 
-// Función para actualizar un método de pago
+/**
+ * @swagger
+ * /api/paymentMethods/{Payment_ID}:
+ *   put:
+ *     summary: Actualizar un método de pago
+ *     parameters:
+ *       - in: path
+ *         name: Payment_ID
+ *         required: true
+ *         description: ID del método de pago a actualizar
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 format: float
+ *               method:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Método de pago actualizado correctamente
+ *       404:
+ *         description: Método de pago no encontrado
+ */
 const updatePaymentMethod = async (req, res) => {
-  const { Payment_ID } = req.params;  // Obtener el ID del método de pago desde los parámetros de la URL
+  const { Payment_ID } = req.params;
   const { Amount, Method } = req.body;
 
   try {
@@ -72,7 +199,6 @@ const updatePaymentMethod = async (req, res) => {
       return res.status(404).json({ message: 'Método de pago no encontrado' });
     }
 
-    // Actualizar el método de pago
     await sequelize.query(`
       UPDATE "ADMIN"."PaymentMethods"
       SET "Amount" = :Amount, "Method" = :Method, "updatedAt" = CURRENT_TIMESTAMP
@@ -82,14 +208,31 @@ const updatePaymentMethod = async (req, res) => {
       type: sequelize.QueryTypes.UPDATE,
     });
 
-    res.json({ message: 'Método de pago actualizado correctamente' });  // Confirmación de actualización
+    res.json({ message: 'Método de pago actualizado correctamente' });
   } catch (error) {
     console.error('Error al actualizar el método de pago:', error);
     res.status(500).json({ message: 'Error al actualizar el método de pago' });
   }
 };
 
-// Función para eliminar un método de pago
+/**
+ * @swagger
+ * /api/paymentMethods/{Payment_ID}:
+ *   delete:
+ *     summary: Eliminar un método de pago
+ *     parameters:
+ *       - in: path
+ *         name: Payment_ID
+ *         required: true
+ *         description: ID del método de pago a eliminar
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Método de pago eliminado con éxito
+ *       404:
+ *         description: Método de pago no encontrado
+ */
 const deletePaymentMethod = async (req, res) => {
   const { Payment_ID } = req.params;
 
@@ -106,7 +249,6 @@ const deletePaymentMethod = async (req, res) => {
       return res.status(404).json({ message: 'Método de pago no encontrado' });
     }
 
-    // Eliminar el método de pago
     await sequelize.query(`
       DELETE FROM "ADMIN"."PaymentMethods"
       WHERE "Payment_ID" = :Payment_ID
@@ -115,7 +257,7 @@ const deletePaymentMethod = async (req, res) => {
       type: sequelize.QueryTypes.DELETE,
     });
 
-    res.json({ message: 'Método de pago eliminado con éxito' });  // Confirmación de eliminación
+    res.json({ message: 'Método de pago eliminado con éxito' });
   } catch (error) {
     console.error('Error al eliminar el método de pago:', error);
     res.status(500).json({ message: 'Error al eliminar el método de pago' });

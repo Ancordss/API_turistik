@@ -1,8 +1,71 @@
 const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
 
-// Función para obtener todas las respuestas de un usuario
+const jwt = require('jsonwebtoken');
+
+// Middleware para verificar el token
+const verifyToken = (req, res, next) => {
+  // Obtener el token de los encabezados
+  const token = req.headers['authorization'];
+
+  if (!token) {
+    return res.status(403).json({ message: 'Acceso denegado, token no encontrado' });
+  }
+
+  // Verificar el token
+  try {
+    const decoded = jwt.verify(token, 'mi_clave_secreta');
+    req.userId = decoded.userId;
+    req.userType = decoded.userType;
+    next();  // Pasa al siguiente middleware o controlador
+  } catch (error) {
+    return res.status(401).json({ message: 'Token inválido o expirado' });
+  }
+};
+
+module.exports = { verifyToken };
+
+
+
+
+/**
+ * @swagger
+ * /api/userAnswers/{userId}:
+ *   get:
+ *     summary: Obtener todas las respuestas de un usuario
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: ID del usuario cuyas respuestas se desean obtener
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de respuestas del usuario obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   answer_id:
+ *                     type: integer
+ *                   user_id:
+ *                     type: integer
+ *                   question_id:
+ *                     type: integer
+ *                   answer:
+ *                     type: string
+ *                   date:
+ *                     type: string
+ *                   user_name:
+ *                     type: string
+ *                   question_text:
+ *                     type: string
+ */
 const getUserAnswers = async (req, res) => {
-  const { userId } = req.params;  // Obtener el ID del usuario desde los parámetros de la URL
+  const { userId } = req.params;
 
   try {
     const [userAnswers, metadata] = await sequelize.query(`
@@ -27,14 +90,50 @@ const getUserAnswers = async (req, res) => {
       type: sequelize.QueryTypes.SELECT,
     });
 
-    res.json(userAnswers);  // Devuelve los resultados obtenidos en formato JSON
+    res.json(userAnswers);
   } catch (error) {
     console.error('Error al obtener las respuestas del usuario:', error);
     res.status(500).json({ message: 'Error al obtener las respuestas del usuario' });
   }
 };
 
-// Función para crear una nueva respuesta de usuario
+/**
+ * @swagger
+ * /api/userAnswers:
+ *   post:
+ *     summary: Crear una nueva respuesta de usuario
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_id:
+ *                 type: integer
+ *               question_id:
+ *                 type: integer
+ *               answer:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Respuesta del usuario creada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 answer_id:
+ *                   type: integer
+ *                 user_id:
+ *                   type: integer
+ *                 question_id:
+ *                   type: integer
+ *                 answer:
+ *                   type: string
+ *                 date:
+ *                   type: string
+ */
 const createUserAnswer = async (req, res) => {
   const { User_ID, Question_ID, Answer } = req.body;
 
@@ -50,16 +149,42 @@ const createUserAnswer = async (req, res) => {
       type: sequelize.QueryTypes.INSERT,
     });
 
-    res.status(201).json(newUserAnswer[0]);  // Devolver la respuesta creada
+    res.status(201).json(newUserAnswer[0]);
   } catch (error) {
     console.error('Error al crear la respuesta del usuario:', error);
     res.status(500).json({ message: 'Error al crear la respuesta del usuario' });
   }
 };
 
-// Función para actualizar una respuesta de usuario
+/**
+ * @swagger
+ * /api/userAnswers/{Answer_ID}:
+ *   put:
+ *     summary: Actualizar una respuesta de usuario
+ *     parameters:
+ *       - in: path
+ *         name: Answer_ID
+ *         required: true
+ *         description: ID de la respuesta a actualizar
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               answer:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Respuesta de usuario actualizada correctamente
+ *       404:
+ *         description: Respuesta no encontrada
+ */
 const updateUserAnswer = async (req, res) => {
-  const { Answer_ID } = req.params;  // Obtener el ID de la respuesta desde los parámetros de la URL
+  const { Answer_ID } = req.params;
   const { Answer } = req.body;
 
   try {
@@ -75,7 +200,6 @@ const updateUserAnswer = async (req, res) => {
       return res.status(404).json({ message: 'Respuesta no encontrada' });
     }
 
-    // Actualizar la respuesta
     await sequelize.query(`
       UPDATE "ADMIN"."UserAnswers"
       SET "Answer" = :Answer, "updatedAt" = CURRENT_TIMESTAMP
@@ -85,14 +209,31 @@ const updateUserAnswer = async (req, res) => {
       type: sequelize.QueryTypes.UPDATE,
     });
 
-    res.json({ message: 'Respuesta actualizada correctamente' });  // Confirmación de actualización
+    res.json({ message: 'Respuesta actualizada correctamente' });
   } catch (error) {
     console.error('Error al actualizar la respuesta del usuario:', error);
     res.status(500).json({ message: 'Error al actualizar la respuesta del usuario' });
   }
 };
 
-// Función para eliminar una respuesta de usuario
+/**
+ * @swagger
+ * /api/userAnswers/{Answer_ID}:
+ *   delete:
+ *     summary: Eliminar una respuesta de usuario
+ *     parameters:
+ *       - in: path
+ *         name: Answer_ID
+ *         required: true
+ *         description: ID de la respuesta a eliminar
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Respuesta de usuario eliminada con éxito
+ *       404:
+ *         description: Respuesta no encontrada
+ */
 const deleteUserAnswer = async (req, res) => {
   const { Answer_ID } = req.params;
 
@@ -109,7 +250,6 @@ const deleteUserAnswer = async (req, res) => {
       return res.status(404).json({ message: 'Respuesta no encontrada' });
     }
 
-    // Eliminar la respuesta
     await sequelize.query(`
       DELETE FROM "ADMIN"."UserAnswers"
       WHERE "Answer_ID" = :Answer_ID
@@ -118,7 +258,7 @@ const deleteUserAnswer = async (req, res) => {
       type: sequelize.QueryTypes.DELETE,
     });
 
-    res.json({ message: 'Respuesta eliminada con éxito' });  // Confirmación de eliminación
+    res.json({ message: 'Respuesta eliminada con éxito' });
   } catch (error) {
     console.error('Error al eliminar la respuesta del usuario:', error);
     res.status(500).json({ message: 'Error al eliminar la respuesta del usuario' });
