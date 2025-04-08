@@ -3,6 +3,9 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../config/config');
 const verifyToken = require('../middleware/verifyToken');  // Importar el middleware
 
+
+
+
 /**
  * @swagger
  * /api/users:
@@ -22,13 +25,15 @@ const verifyToken = require('../middleware/verifyToken');  // Importar el middle
  *                 properties:
  *                   id:
  *                     type: integer
- *                   name:
+ *                   Name:
  *                     type: string
- *                   email:
+ *                   Email:
  *                     type: string
- *                   birth_date:
+ *                   Password:
  *                     type: string
- *                   user_type:
+ *                   Birth_Date:
+ *                     type: string
+ *                   User_Type:
  *                     type: string
  */
 const getUsers = async (req, res) => {
@@ -53,15 +58,15 @@ const getUsers = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               Name:
  *                 type: string
- *               email:
+ *               Email:
  *                 type: string
- *               password:
+ *               Password:
  *                 type: string
- *               birth_date:
+ *               Birth_Date:
  *                 type: string
- *               user_type:
+ *               User_Type:
  *                 type: string
  *     responses:
  *       201:
@@ -73,13 +78,15 @@ const getUsers = async (req, res) => {
  *               properties:
  *                 id:
  *                   type: integer
- *                 name:
+ *                 Name:
  *                   type: string
- *                 email:
+ *                 Email:
  *                   type: string
- *                 birth_date:
+ *                 Password:
  *                   type: string
- *                 user_type:
+ *                 Birth_Date:
+ *                   type: string
+ *                 User_Type:
  *                   type: string
  */
 const createUser = async (req, res) => {
@@ -124,15 +131,15 @@ const createUser = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               Name:
  *                 type: string
- *               email:
+ *               Email:
  *                 type: string
- *               password:
+ *               Password:
  *                 type: string
- *               birth_date:
+ *               Birth_Date:
  *                 type: string
- *               user_type:
+ *               User_Type:
  *                 type: string
  *     responses:
  *       200:
@@ -203,32 +210,96 @@ const deleteUser = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/users/login:
+ *   post:
+ *     summary: Iniciar sesión de usuario
+ *     description: Autentica un usuario y devuelve un token JWT
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - Email
+ *               - Password
+ *             properties:
+ *               Email:
+ *                 type: string
+ *                 format: email
+ *               Password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Inicio de sesión exitoso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     Name:
+ *                       type: string
+ *                     Email:
+ *                       type: string
+ *                     User_Type:
+ *                       type: string
+ *       401:
+ *         description: Credenciales inválidas
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
 const loginUser = async (req, res) => {
   const { Email, Password } = req.body;
 
   try {
     // Buscar al usuario por su correo electrónico
+    console.log(Email, Password);
     const user = await User.findOne({ where: { Email } });
 
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
-
+    console.log(user);
     // Verificar la contraseña
     const isPasswordValid = await bcrypt.compare(Password, user.Password);
+    console.log(isPasswordValid);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Contraseña incorrecta' });
+      return res.status(401).json({ message: 'Credenciales inválidas' });
     }
-
+    console.log(isPasswordValid);
     // Generar un token JWT
     const token = jwt.sign(
-      { userId: user.User_ID, userType: user.User_Type },  // Información que va en el token
-      'mi_clave_secreta',  // Clave secreta para firmar el token
-      { expiresIn: '1h' }  // El token expira en 1 hora
+      {
+        userId: user.User_ID,
+        userType: user.User_Type,
+        email: user.Email
+      },
+      process.env.JWT_SECRET || 'mi_clave_secreta',  // Usar variable de entorno o fallback
+      { expiresIn: '24h' }  // El token expira en 24 horas
     );
 
-    res.json({ token });  // Devuelve el token al cliente
+    // Devolver el token y la información básica del usuario
+    res.json({
+      token,
+      user: {
+        id: user.User_ID,
+        name: user.Name,
+        email: user.Email,
+        userType: user.User_Type
+      }
+    });
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
     res.status(500).json({ message: 'Error al iniciar sesión' });

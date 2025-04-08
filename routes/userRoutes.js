@@ -1,12 +1,14 @@
 // routes/userRoutes.js
 
 const express = require('express');
-const { getUsers, createUser, updateUser, deleteUser } = require('../controllers/userController');  // Asegúrate de importar el controlador
+const { getUsers, createUser, updateUser, deleteUser, loginUser } = require('../controllers/userController');  // Asegúrate de importar el controlador
 
 const router = express.Router();
 
 // Ruta para obtener todos los usuarios
 router.get('/', getUsers);
+
+router.post('/login', loginUser);
 
 // Ruta para crear un nuevo usuario
 router.post('/', createUser);
