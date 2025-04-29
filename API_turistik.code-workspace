@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "API_turistik",
+			"path": "."
+		},
+		{
+			"name": "recursos",
+			"path": "../recursos"
+		}
+	],
+	"settings": {}
+}

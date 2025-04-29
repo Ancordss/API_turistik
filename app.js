@@ -1,5 +1,6 @@
 const express = require('express');
 require('dotenv').config();
+const cors = require('cors');
 const { sequelize, syncDatabase } = require('./config/config');  // Asegúrate de importar sequelize correctamente
 const userRoutes = require('./routes/userRoutes');  // Importa las rutas de usuario
 const touristPlaceRoutes = require('./routes/touristPlaceRoutes');  // Importa las rutas de lugares turísticos
@@ -17,6 +18,13 @@ const verifyToken = require('./middleware/verifyToken');  // Importar el middlew
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configurar CORS
+app.use(cors({
+  origin: '*', // En producción, cambiar por la URL específica del frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Configuración de Swagger
 const swaggerOptions = {
