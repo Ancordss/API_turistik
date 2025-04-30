@@ -1,29 +1,23 @@
-const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
-
+const { RatingsComment, sequelize } = require('../config/config');  // Asegúrate de importar correctamente el modelo
 const jwt = require('jsonwebtoken');
 
 // Middleware para verificar el token
 const verifyToken = (req, res, next) => {
-  // Obtener el token de los encabezados
   const token = req.headers['authorization'];
 
   if (!token) {
     return res.status(403).json({ message: 'Acceso denegado, token no encontrado' });
   }
 
-  // Verificar el token
   try {
     const decoded = jwt.verify(token, 'mi_clave_secreta');
-    req.userId = decoded.userId;
-    req.userType = decoded.userType;
-    next();  // Pasa al siguiente middleware o controlador
+    req.User_ID = decoded.User_ID;
+    req.User_Type = decoded.User_Type;
+    next();
   } catch (error) {
     return res.status(401).json({ message: 'Token inválido o expirado' });
   }
 };
-
-module.exports = { verifyToken };
-
 
 /**
  * @swagger
@@ -40,42 +34,38 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   rating_id:
+ *                   Rating_ID:
  *                     type: integer
- *                   user_id:
+ *                   User_ID:
  *                     type: integer
- *                   place_id:
+ *                   Place_ID:
  *                     type: integer
- *                   rating:
+ *                   Rating:
  *                     type: integer
- *                   comment:
+ *                   Comment:
  *                     type: string
- *                   date:
+ *                   Date:
  *                     type: string
- *                   user_name:
+ *                   User_Name:
  *                     type: string
- *                   place_name:
+ *                   Place_Name:
  *                     type: string
  */
 const getRatingsComments = async (req, res) => {
   try {
-    const [ratingsComments, metadata] = await sequelize.query(`
-      SELECT
-        rc."Rating_ID",
-        rc."User_ID",
-        rc."Place_ID",
-        rc."Rating",
-        rc."Comment",
-        rc."Date",
-        u."Name" AS "UserName",
-        p."Name" AS "PlaceName"
-      FROM
-        "ADMIN"."RatingsComments" rc
-      JOIN
-        "ADMIN"."Users" u ON u."User_ID" = rc."User_ID"
-      JOIN
-        "ADMIN"."TouristPlaces" p ON p."Place_ID" = rc."Place_ID"
-    `);
+    const ratingsComments = await RatingsComment.findAll({
+      attributes: ['Rating_ID', 'User_ID', 'Place_ID', 'Rating', 'Comment', 'Date'],
+      include: [
+        {
+          model: sequelize.models.User,
+          attributes: ['Name'],
+        },
+        {
+          model: sequelize.models.TouristPlace,
+          attributes: ['Name'],
+        },
+      ],
+    });
 
     res.json(ratingsComments);
   } catch (error) {
@@ -96,13 +86,13 @@ const getRatingsComments = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               place_id:
+ *               Place_ID:
  *                 type: integer
- *               rating:
+ *               Rating:
  *                 type: integer
- *               comment:
+ *               Comment:
  *                 type: string
  *     responses:
  *       201:
@@ -112,35 +102,31 @@ const getRatingsComments = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 rating_id:
+ *                 Rating_ID:
  *                   type: integer
- *                 user_id:
+ *                 User_ID:
  *                   type: integer
- *                 place_id:
+ *                 Place_ID:
  *                   type: integer
- *                 rating:
+ *                 Rating:
  *                   type: integer
- *                 comment:
+ *                 Comment:
  *                   type: string
- *                 date:
+ *                 Date:
  *                   type: string
  */
 const createRatingComment = async (req, res) => {
   const { User_ID, Place_ID, Rating, Comment } = req.body;
 
   try {
-    const newRatingComment = await sequelize.query(`
-      INSERT INTO "ADMIN"."RatingsComments" 
-        ("User_ID", "Place_ID", "Rating", "Comment", "Date", "createdAt", "updatedAt")
-      VALUES 
-        (:User_ID, :Place_ID, :Rating, :Comment, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING "Rating_ID", "User_ID", "Place_ID", "Rating", "Comment", "Date"
-    `, {
-      replacements: { User_ID, Place_ID, Rating, Comment },
-      type: sequelize.QueryTypes.INSERT,
+    const newRatingComment = await RatingsComment.create({
+      User_ID,
+      Place_ID,
+      Rating,
+      Comment,
     });
 
-    res.status(201).json(newRatingComment[0]);
+    res.status(201).json(newRatingComment);
   } catch (error) {
     console.error('Error al crear la calificación y comentario:', error);
     res.status(500).json({ message: 'Error al crear la calificación y comentario' });
@@ -166,9 +152,9 @@ const createRatingComment = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               rating:
+ *               Rating:
  *                 type: integer
- *               comment:
+ *               Comment:
  *                 type: string
  *     responses:
  *       200:
@@ -181,26 +167,16 @@ const updateRatingComment = async (req, res) => {
   const { Rating, Comment } = req.body;
 
   try {
-    const ratingComment = await sequelize.query(`
-      SELECT * FROM "ADMIN"."RatingsComments"
-      WHERE "Rating_ID" = :Rating_ID
-    `, {
-      replacements: { Rating_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const ratingComment = await RatingsComment.findByPk(Rating_ID);
 
-    if (!ratingComment || ratingComment.length === 0) {
+    if (!ratingComment) {
       return res.status(404).json({ message: 'Calificación y comentario no encontrado' });
     }
 
-    await sequelize.query(`
-      UPDATE "ADMIN"."RatingsComments"
-      SET "Rating" = :Rating, "Comment" = :Comment, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "Rating_ID" = :Rating_ID
-    `, {
-      replacements: { Rating, Comment, Rating_ID },
-      type: sequelize.QueryTypes.UPDATE,
-    });
+    ratingComment.Rating = Rating;
+    ratingComment.Comment = Comment;
+
+    await ratingComment.save();
 
     res.json({ message: 'Calificación y comentario actualizados correctamente' });
   } catch (error) {
@@ -231,25 +207,13 @@ const deleteRatingComment = async (req, res) => {
   const { Rating_ID } = req.params;
 
   try {
-    const ratingComment = await sequelize.query(`
-      SELECT * FROM "ADMIN"."RatingsComments"
-      WHERE "Rating_ID" = :Rating_ID
-    `, {
-      replacements: { Rating_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const ratingComment = await RatingsComment.findByPk(Rating_ID);
 
-    if (!ratingComment || ratingComment.length === 0) {
+    if (!ratingComment) {
       return res.status(404).json({ message: 'Calificación y comentario no encontrado' });
     }
 
-    await sequelize.query(`
-      DELETE FROM "ADMIN"."RatingsComments"
-      WHERE "Rating_ID" = :Rating_ID
-    `, {
-      replacements: { Rating_ID },
-      type: sequelize.QueryTypes.DELETE,
-    });
+    await ratingComment.destroy();
 
     res.json({ message: 'Calificación y comentario eliminados con éxito' });
   } catch (error) {

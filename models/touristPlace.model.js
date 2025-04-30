@@ -21,10 +21,10 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.STRING(200),  // Ubicación (puede ser dirección o coordenadas geográficas)
     },
     Image: {
-      type: Sequelize.BLOB,  // Almacenará imágenes en formato BLOB
+      type: Sequelize.STRING(200),  // Almacena la URL de la imagen como string
     },
     Coordinates: {
-      type: Sequelize.GEOMETRY('POINT'),  // Tipo de datos para coordenadas geográficas (latitud y longitud)
+      type: Sequelize.STRING(200),  // Almacena las coordenadas como string (ej. 'lat, long')
     },
   });
 

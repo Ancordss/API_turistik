@@ -12,6 +12,9 @@ const ratingsCommentRoutes = require('./routes/ratingsCommentRoutes');  // Impor
 const routesHistoryRoutes = require('./routes/routesHistoryRoutes');  // Importa las rutas de historial de rutas
 const paymentMethodRoutes = require('./routes/paymentMethodRoutes');  // Importa las rutas de métodos de pago
 const userAnswerRoutes = require('./routes/userAnswerRoutes');  // Importa las rutas de respuestas de usuario
+const questionDetailRoutes = require('./routes/questionDetailRoutes');  // Importa las rutas de respuestas de usuario
+const routeRecommendationRoutes = require('./routes/routeRecommendationRoutes');  // Importa las rutas de respuestas de usuario
+
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const verifyToken = require('./middleware/verifyToken');  // Importar el middleware de verificación
@@ -46,9 +49,12 @@ const swaggerOptions = {
     './controllers/ratingsCommentController.js', // Rutas de calificaciones y comentarios
     './controllers/routesHistoryController.js', // Rutas de historial de rutas
     './controllers/paymentMethodController.js', // Rutas de métodos de pago
-    './controllers/userAnswerController.js'    // Rutas de respuestas de usuario
+    './controllers/userAnswerController.js',    // Rutas de respuestas de usuario
+    './controllers/routeRecommendationController.js', // Rutas de recomendaciones de rutas
+    './controllers/questionDetailController.js' // Rutas de detalles de preguntas
   ],
 };
+
 
 // Generar especificación Swagger
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
@@ -99,6 +105,12 @@ async function startServer() {
     // Usamos las rutas de respuestas de usuario
     app.use('/api/userAnswers', userAnswerRoutes);
 
+    // Usamos las rutas de detalles de preguntas
+    app.use('/api/questionDetails', questionDetailRoutes);
+
+    // Usamos las rutas de recomendaciones de rutas
+    app.use('/api/routeRecommendations', routeRecommendationRoutes);
+    
 
     // app.use('/api/users', verifyToken, userRoutes);  // Aseguramos que las rutas de usuarios estén protegidas
     app.use('/api/users', userRoutes);

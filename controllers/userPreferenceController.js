@@ -1,6 +1,4 @@
-const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
-
-
+const { UserPreference, sequelize } = require('../config/config');  // Asegúrate de importar correctamente Sequelize y UserPreference
 const jwt = require('jsonwebtoken');
 
 // Middleware para verificar el token
@@ -25,9 +23,6 @@ const verifyToken = (req, res, next) => {
 
 module.exports = { verifyToken };
 
-
-
-
 /**
  * @swagger
  * /api/userPreferences:
@@ -43,38 +38,25 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   preference_id:
+ *                   Preference_ID:
  *                     type: integer
- *                   user_id:
+ *                   User_ID:
  *                     type: integer
- *                   category:
+ *                   Category:
  *                     type: string
- *                   description:
+ *                   Description:
  *                     type: string
- *                   registration_date:
- *                     type: string
- *                   user_name:
- *                     type: string
- *                   user_email:
+ *                   Registration_Date:
  *                     type: string
  */
 const getUserPreferences = async (req, res) => {
   try {
-    const [preferences, metadata] = await sequelize.query(`
-      SELECT
-        up."Preference_ID",
-        up."User_ID",
-        up."Category",
-        up."Description",
-        up."Registration_Date",
-        u."Name" AS "UserName",
-        u."Email" AS "UserEmail"
-      FROM
-        "ADMIN"."UserPreferences" up
-      JOIN
-        "ADMIN"."Users" u ON u."User_ID" = up."User_ID"
-    `);
-
+    const preferences = await UserPreference.findAll({
+      include: {
+        model: sequelize.models.User, // Relaciona la tabla "User" para obtener nombre y correo
+        attributes: ['Name', 'Email'],
+      },
+    });
     res.json(preferences);
   } catch (error) {
     console.error('Error al obtener las preferencias de usuario:', error);
@@ -94,12 +76,16 @@ const getUserPreferences = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               category:
+ *               Category:
  *                 type: string
- *               description:
+ *               Description:
  *                 type: string
+ *             required:
+ *               - User_ID
+ *               - Category
+ *               - Description
  *     responses:
  *       201:
  *         description: Preferencia de usuario creada correctamente
@@ -108,37 +94,29 @@ const getUserPreferences = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 preference_id:
+ *                 Preference_ID:
  *                   type: integer
- *                 user_id:
+ *                 User_ID:
  *                   type: integer
- *                 category:
+ *                 Category:
  *                   type: string
- *                 description:
+ *                 Description:
  *                   type: string
- *                 registration_date:
- *                   type: string
- *                 created_at:
- *                   type: string
- *                 updated_at:
+ *                 Registration_Date:
  *                   type: string
  */
 const createUserPreference = async (req, res) => {
   const { User_ID, Category, Description } = req.body;
 
   try {
-    const newPreference = await sequelize.query(`
-      INSERT INTO "ADMIN"."UserPreferences" 
-        ("User_ID", "Category", "Description", "Registration_Date", "createdAt", "updatedAt")
-      VALUES 
-        (:User_ID, :Category, :Description, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING "Preference_ID", "User_ID", "Category", "Description", "Registration_Date", "createdAt", "updatedAt"
-    `, {
-      replacements: { User_ID, Category, Description },
-      type: sequelize.QueryTypes.INSERT,
+    const newPreference = await UserPreference.create({
+      User_ID,
+      Category,
+      Description,
+      Registration_Date: new Date(),
     });
 
-    res.status(201).json(newPreference[0]);
+    res.status(201).json(newPreference);
   } catch (error) {
     console.error('Error al crear la preferencia de usuario:', error);
     res.status(500).json({ message: 'Error al crear la preferencia' });
@@ -164,11 +142,11 @@ const createUserPreference = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               category:
+ *               Category:
  *                 type: string
- *               description:
+ *               Description:
  *                 type: string
  *     responses:
  *       200:
@@ -181,28 +159,19 @@ const updateUserPreference = async (req, res) => {
   const { User_ID, Category, Description } = req.body;
 
   try {
-    const preference = await sequelize.query(`
-      SELECT * FROM "ADMIN"."UserPreferences" 
-      WHERE "Preference_ID" = :Preference_ID
-    `, {
-      replacements: { Preference_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const preference = await UserPreference.findByPk(Preference_ID);
 
-    if (!preference || preference.length === 0) {
+    if (!preference) {
       return res.status(404).json({ message: 'Preferencia no encontrada' });
     }
 
-    await sequelize.query(`
-      UPDATE "ADMIN"."UserPreferences"
-      SET "User_ID" = :User_ID, "Category" = :Category, "Description" = :Description, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "Preference_ID" = :Preference_ID
-    `, {
-      replacements: { User_ID, Category, Description, Preference_ID },
-      type: sequelize.QueryTypes.UPDATE,
-    });
+    preference.User_ID = User_ID;
+    preference.Category = Category;
+    preference.Description = Description;
 
-    res.json({ message: 'Preferencia actualizada correctamente' });
+    await preference.save();
+
+    res.json(preference);
   } catch (error) {
     console.error('Error al actualizar la preferencia de usuario:', error);
     res.status(500).json({ message: 'Error al actualizar la preferencia' });
@@ -223,7 +192,7 @@ const updateUserPreference = async (req, res) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: Preferencia de usuario eliminada correctamente
+ *         description: Preferencia de usuario eliminada con éxito
  *       404:
  *         description: Preferencia no encontrada
  */
@@ -231,25 +200,13 @@ const deleteUserPreference = async (req, res) => {
   const { Preference_ID } = req.params;
 
   try {
-    const preference = await sequelize.query(`
-      SELECT * FROM "ADMIN"."UserPreferences"
-      WHERE "Preference_ID" = :Preference_ID
-    `, {
-      replacements: { Preference_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const preference = await UserPreference.findByPk(Preference_ID);
 
-    if (!preference || preference.length === 0) {
+    if (!preference) {
       return res.status(404).json({ message: 'Preferencia no encontrada' });
     }
 
-    await sequelize.query(`
-      DELETE FROM "ADMIN"."UserPreferences" 
-      WHERE "Preference_ID" = :Preference_ID
-    `, {
-      replacements: { Preference_ID },
-      type: sequelize.QueryTypes.DELETE,
-    });
+    await preference.destroy();
 
     res.json({ message: 'Preferencia eliminada con éxito' });
   } catch (error) {
@@ -259,8 +216,3 @@ const deleteUserPreference = async (req, res) => {
 };
 
 module.exports = { getUserPreferences, createUserPreference, updateUserPreference, deleteUserPreference };
-
-
-
-
-
