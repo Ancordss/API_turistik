@@ -54,16 +54,7 @@ module.exports = { verifyToken };
 const getQuestions = async (req, res) => {
   try {
     const [questions, metadata] = await sequelize.query(`
-      SELECT
-        q."Question_ID",
-        q."Place_ID",
-        q."Question_Text",
-        q."Answer_Type",
-        p."Name" AS "PlaceName"
-      FROM
-        "ADMIN"."Questions" q
-      JOIN
-        "ADMIN"."TouristPlaces" p ON p."Place_ID" = q."Place_ID"
+      SELECT * FROM "ADMIN"."Questions" 
     `);
 
     res.json(questions);
