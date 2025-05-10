@@ -114,7 +114,7 @@ const createUser = async (req, res) => {
 
 /**
  * @swagger
- * /api/users/{User_ID}:
+ * /api/user/{User_ID}:
  *   put:
  *     summary: Actualizar un usuario existente
  *     parameters:
@@ -306,6 +306,64 @@ const loginUser = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/users/answered/{User_ID}/{Question_ID}:
+ *   get:
+ *     summary: Verificar si el usuario ya respondió una pregunta
+ *     parameters:
+ *       - in: path
+ *         name: User_ID
+ *         required: true
+ *         description: ID del usuario
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: Question_ID
+ *         required: true
+ *         description: ID de la pregunta
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Respuesta encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 answered:
+ *                   type: boolean
+ *                   description: Indica si el usuario ha respondido la pregunta
+ *       404:
+ *         description: Usuario o pregunta no encontrados
+ *       500:
+ *         description: Error interno del servidor
+ */
+ const checkUserAnswer = async (req, res) => {
+  const { User_ID, Question_ID } = req.params;
+
+  try {
+    // Verificar si existe una respuesta para esta pregunta por parte de este usuario
+    const answer = await sequelize.models.UserAnswer.findOne({
+      where: {
+        User_ID,
+        Question_ID
+      }
+    });
+
+    // Si se encuentra una respuesta, significa que el usuario ya respondió esa pregunta
+    if (answer) {
+      return res.json({ answered: true });
+    }
+
+    // Si no se encuentra una respuesta, el usuario no ha respondido la pregunta
+    return res.json({ answered: false });
+  } catch (error) {
+    console.error('Error al verificar respuesta del usuario:', error);
+    res.status(500).json({ message: 'Error al verificar la respuesta del usuario' });
+  }
+};
 
 
-module.exports = { getUsers, createUser, updateUser, deleteUser, loginUser};
+module.exports = { getUsers, createUser, updateUser, deleteUser, loginUser, checkUserAnswer};

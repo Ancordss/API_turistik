@@ -53,10 +53,9 @@ module.exports = { verifyToken };
  */
 const getQuestions = async (req, res) => {
   try {
-    const questions = await Question.findAll({
-      attributes: ['Question_ID', 'Question_Text', 'AI_Logic', 'Answer_Type', 'Is_Active', 'Date_Created'],
-    });
-
+    const [questions, metadata] = await sequelize.query(`
+      SELECT * FROM "ADMIN"."Questions" 
+    `);
     res.json(questions);
   } catch (error) {
     console.error('Error al obtener las preguntas:', error);
