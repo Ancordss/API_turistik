@@ -37,11 +37,28 @@ db.User = require('../models/user.model.js')(sequelize, Sequelize);
 db.TouristPlace = require('../models/touristPlace.model.js')(sequelize, Sequelize);
 db.Question = require('../models/question.model.js')(sequelize, Sequelize);
 db.UserPreference = require('../models/userPreference.model.js')(sequelize, Sequelize);
-db.UserPreference = require('../models/routes.model.js')(sequelize, Sequelize);
-db.UserPreference = require('../models/placesInRoutes.model.js')(sequelize, Sequelize);
-db.UserPreference = require('../models/ratingsComment.model.js')(sequelize, Sequelize);
+db.Route = require('../models/routes.model.js')(sequelize, Sequelize);
+db.PlacesInRoute = require('../models/placesInRoutes.model.js')(sequelize, Sequelize);
+db.RatingsComment = require('../models/ratingsComment.model.js')(sequelize, Sequelize);
 db.RoutesHistory = require('../models/routesHistory.model.js')(sequelize, Sequelize);
-db.RoutesHistory = require('../models/paymentMethod.model.js')(sequelize, Sequelize);
-db.RoutesHistory = require('../models/userAnswer.model.js')(sequelize, Sequelize);
+db.PaymentMethod = require('../models/paymentMethod.model.js')(sequelize, Sequelize);
+db.UserAnswer = require('../models/userAnswer.model.js')(sequelize, Sequelize);
+db.QuestionDetail = require('../models/questionDetail.model.js')(sequelize, Sequelize);
+db.RouteRecommendation = require('../models/routeRecommendation.model.js')(sequelize, Sequelize);
+
+
+
+if (db.UserPreference.associate) db.UserPreference.associate(db);
+if (db.Question.associate) db.Question.associate(db);
+if (db.Route.associate) db.Routes.associate(db);
+if (db.PlacesInRoute.associate) db.PlacesInRoutes.associate(db);
+if (db.RatingsComment.associate) db.RatingsComment.associate(db);
+if (db.RoutesHistory.associate) db.RoutesHistory.associate(db);
+if (db.PaymentMethod.associate) db.PaymentMethod.associate(db);
+if (db.UserAnswer.associate) db.UserAnswer.associate(db);
+if (db.QuestionDetail.associate) db.QuestionDetail.associate(db);
+if (db.RouteRecommendation.associate) db.RouteRecommendation.associate(db);  // Asociamos el modelo de RouteRecommendation
+
+
 
 module.exports = db;

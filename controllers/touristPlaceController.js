@@ -1,5 +1,4 @@
 const { TouristPlace } = require('../config/config');  // Asegúrate de importar correctamente el modelo
-
 const jwt = require('jsonwebtoken');
 
 // Middleware para verificar el token
@@ -24,7 +23,6 @@ const verifyToken = (req, res, next) => {
 
 module.exports = { verifyToken };
 
-
 /**
  * @swagger
  * /api/touristPlaces:
@@ -40,19 +38,19 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   id:
+ *                   Place_ID:
  *                     type: integer
- *                   name:
+ *                   Name:
  *                     type: string
- *                   description:
+ *                   Description:
  *                     type: string
- *                   category:
+ *                   Category:
  *                     type: string
- *                   location:
+ *                   Location:
  *                     type: string
- *                   image:
+ *                   Image:
  *                     type: string
- *                   coordinates:
+ *                   Coordinates:
  *                     type: string
  */
 const getTouristPlaces = async (req, res) => {
@@ -77,18 +75,25 @@ const getTouristPlaces = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               Name:
  *                 type: string
- *               description:
+ *               Description:
  *                 type: string
- *               category:
+ *               Category:
  *                 type: string
- *               location:
+ *               Location:
  *                 type: string
- *               image:
+ *               Image:
  *                 type: string
- *               coordinates:
+ *               Coordinates:
  *                 type: string
+ *             required:
+ *               - Name
+ *               - Description
+ *               - Category
+ *               - Location
+ *               - Image
+ *               - Coordinates
  *     responses:
  *       201:
  *         description: Lugar turístico creado correctamente
@@ -97,19 +102,19 @@ const getTouristPlaces = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 Place_ID:
  *                   type: integer
- *                 name:
+ *                 Name:
  *                   type: string
- *                 description:
+ *                 Description:
  *                   type: string
- *                 category:
+ *                 Category:
  *                   type: string
- *                 location:
+ *                 Location:
  *                   type: string
- *                 image:
+ *                 Image:
  *                   type: string
- *                 coordinates:
+ *                 Coordinates:
  *                   type: string
  */
 const createTouristPlace = async (req, res) => {
@@ -121,8 +126,8 @@ const createTouristPlace = async (req, res) => {
       Description,
       Category,
       Location,
-      Image,
-      Coordinates,
+      Image,   // Almacena la URL o dirección de la imagen
+      Coordinates,  // Almacena las coordenadas como un string
     });
 
     res.status(201).json(newPlace);
@@ -151,17 +156,17 @@ const createTouristPlace = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               Name:
  *                 type: string
- *               description:
+ *               Description:
  *                 type: string
- *               category:
+ *               Category:
  *                 type: string
- *               location:
+ *               Location:
  *                 type: string
- *               image:
+ *               Image:
  *                 type: string
- *               coordinates:
+ *               Coordinates:
  *                 type: string
  *     responses:
  *       200:
@@ -171,19 +176,19 @@ const createTouristPlace = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 Place_ID:
  *                   type: integer
- *                 name:
+ *                 Name:
  *                   type: string
- *                 description:
+ *                 Description:
  *                   type: string
- *                 category:
+ *                 Category:
  *                   type: string
- *                 location:
+ *                 Location:
  *                   type: string
- *                 image:
+ *                 Image:
  *                   type: string
- *                 coordinates:
+ *                 Coordinates:
  *                   type: string
  *       404:
  *         description: Lugar turístico no encontrado

@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
+const { PlacesInRoute, sequelize } = require('../config/config');  // Asegúrate de importar correctamente el modelo
 
 const jwt = require('jsonwebtoken');
 
@@ -22,8 +22,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
-
 /**
  * @swagger
  * /api/placesInRoutes:
@@ -39,33 +37,32 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   route_id:
+ *                   Route_ID:
  *                     type: integer
- *                   place_id:
+ *                   Place_ID:
  *                     type: integer
- *                   order_number:
+ *                   Order_Number:
  *                     type: integer
- *                   route_name:
+ *                   Route_Name:
  *                     type: string
- *                   place_name:
+ *                   Place_Name:
  *                     type: string
  */
 const getPlacesInRoutes = async (req, res) => {
   try {
-    const [placesInRoutes, metadata] = await sequelize.query(`
-      SELECT
-        pir."Route_ID",
-        pir."Place_ID",
-        pir."Order_Number",
-        r."Route_Name",
-        p."Name" AS "PlaceName"
-      FROM
-        "ADMIN"."PlacesInRoutes" pir
-      JOIN
-        "ADMIN"."Routes" r ON r."Route_ID" = pir."Route_ID"
-      JOIN
-        "ADMIN"."TouristPlaces" p ON p."Place_ID" = pir."Place_ID"
-    `);
+    const placesInRoutes = await PlacesInRoute.findAll({
+      attributes: ['Route_ID', 'Place_ID', 'Order_Number'],
+      include: [
+        {
+          model: sequelize.models.Route,
+          attributes: ['Route_Name'],
+        },
+        {
+          model: sequelize.models.TouristPlace,
+          attributes: ['Name'],
+        }
+      ]
+    });
 
     res.json(placesInRoutes);
   } catch (error) {
@@ -86,11 +83,11 @@ const getPlacesInRoutes = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               route_id:
+ *               Route_ID:
  *                 type: integer
- *               place_id:
+ *               Place_ID:
  *                 type: integer
- *               order_number:
+ *               Order_Number:
  *                 type: integer
  *     responses:
  *       201:
@@ -100,29 +97,24 @@ const getPlacesInRoutes = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 route_id:
+ *                 Route_ID:
  *                   type: integer
- *                 place_id:
+ *                 Place_ID:
  *                   type: integer
- *                 order_number:
+ *                 Order_Number:
  *                   type: integer
  */
 const createPlaceInRoute = async (req, res) => {
   const { Route_ID, Place_ID, Order_Number } = req.body;
 
   try {
-    const newPlaceInRoute = await sequelize.query(`
-      INSERT INTO "ADMIN"."PlacesInRoute" 
-        ("Route_ID", "Place_ID", "Order_Number", "createdAt", "updatedAt")
-      VALUES 
-        (:Route_ID, :Place_ID, :Order_Number, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING "Route_ID", "Place_ID", "Order_Number"
-    `, {
-      replacements: { Route_ID, Place_ID, Order_Number },
-      type: sequelize.QueryTypes.INSERT,
+    const newPlaceInRoute = await PlacesInRoute.create({
+      Route_ID,
+      Place_ID,
+      Order_Number,
     });
 
-    res.status(201).json(newPlaceInRoute[0]);
+    res.status(201).json(newPlaceInRoute);
   } catch (error) {
     console.error('Error al crear el lugar en ruta:', error);
     res.status(500).json({ message: 'Error al crear el lugar en ruta' });
@@ -154,7 +146,7 @@ const createPlaceInRoute = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               order_number:
+ *               Order_Number:
  *                 type: integer
  *     responses:
  *       200:
@@ -167,26 +159,17 @@ const updatePlaceInRoute = async (req, res) => {
   const { Order_Number } = req.body;
 
   try {
-    const placeInRoute = await sequelize.query(`
-      SELECT * FROM "ADMIN"."PlacesInRoute"
-      WHERE "Route_ID" = :Route_ID AND "Place_ID" = :Place_ID
-    `, {
-      replacements: { Route_ID, Place_ID },
-      type: sequelize.QueryTypes.SELECT,
+    const placeInRoute = await PlacesInRoute.findOne({
+      where: { Route_ID, Place_ID }
     });
 
-    if (!placeInRoute || placeInRoute.length === 0) {
+    if (!placeInRoute) {
       return res.status(404).json({ message: 'Relación de lugar en ruta no encontrada' });
     }
 
-    await sequelize.query(`
-      UPDATE "ADMIN"."PlacesInRoute"
-      SET "Order_Number" = :Order_Number, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "Route_ID" = :Route_ID AND "Place_ID" = :Place_ID
-    `, {
-      replacements: { Order_Number, Route_ID, Place_ID },
-      type: sequelize.QueryTypes.UPDATE,
-    });
+    placeInRoute.Order_Number = Order_Number;
+
+    await placeInRoute.save();
 
     res.json({ message: 'Relación de lugar en ruta actualizada correctamente' });
   } catch (error) {
@@ -223,25 +206,15 @@ const deletePlaceInRoute = async (req, res) => {
   const { Route_ID, Place_ID } = req.params;
 
   try {
-    const placeInRoute = await sequelize.query(`
-      SELECT * FROM "ADMIN"."PlacesInRoute"
-      WHERE "Route_ID" = :Route_ID AND "Place_ID" = :Place_ID
-    `, {
-      replacements: { Route_ID, Place_ID },
-      type: sequelize.QueryTypes.SELECT,
+    const placeInRoute = await PlacesInRoute.findOne({
+      where: { Route_ID, Place_ID }
     });
 
-    if (!placeInRoute || placeInRoute.length === 0) {
+    if (!placeInRoute) {
       return res.status(404).json({ message: 'Relación de lugar en ruta no encontrada' });
     }
 
-    await sequelize.query(`
-      DELETE FROM "ADMIN"."PlacesInRoute"
-      WHERE "Route_ID" = :Route_ID AND "Place_ID" = :Place_ID
-    `, {
-      replacements: { Route_ID, Place_ID },
-      type: sequelize.QueryTypes.DELETE,
-    });
+    await placeInRoute.destroy();
 
     res.json({ message: 'Relación de lugar en ruta eliminada con éxito' });
   } catch (error) {

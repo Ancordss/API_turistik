@@ -1,5 +1,4 @@
-const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
-
+const { Route, sequelize } = require('../config/config');  // Asegúrate de importar correctamente el modelo
 const jwt = require('jsonwebtoken');
 
 // Middleware para verificar el token
@@ -22,10 +21,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
-
-
-
 /**
  * @swagger
  * /api/routes:
@@ -41,43 +36,34 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   route_id:
+ *                   Route_ID:
  *                     type: integer
- *                   user_id:
+ *                   User_ID:
  *                     type: integer
- *                   route_name:
+ *                   Route_Name:
  *                     type: string
- *                   description:
+ *                   Description:
  *                     type: string
- *                   registration_date:
+ *                   Registration_Date:
  *                     type: string
- *                   duration:
+ *                   Duration:
  *                     type: string
- *                   distance:
+ *                   Distance:
  *                     type: string
- *                   coordinates:
+ *                   Coordinates:
  *                     type: string
- *                   user_name:
+ *                   User_Name:
  *                     type: string
  */
 const getRoutes = async (req, res) => {
   try {
-    const [routes, metadata] = await sequelize.query(`
-      SELECT
-        r."Route_ID",
-        r."User_ID",
-        r."Route_Name",
-        r."Description",
-        r."Registration_Date",
-        r."Duration",
-        r."Distance",
-        r."Coordinates",
-        u."Name" AS "UserName"
-      FROM
-        "ADMIN"."Routes" r
-      JOIN
-        "ADMIN"."Users" u ON u."User_ID" = r."User_ID"
-    `);
+    const routes = await Route.findAll({
+      attributes: ['Route_ID', 'User_ID', 'Route_Name', 'Description', 'Registration_Date', 'Duration', 'Distance', 'Coordinates'],
+      include: [{
+        model: sequelize.models.User,
+        attributes: ['Name'],
+      }],
+    });
 
     res.json(routes);
   } catch (error) {
@@ -98,17 +84,17 @@ const getRoutes = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               route_name:
+ *               Route_Name:
  *                 type: string
- *               description:
+ *               Description:
  *                 type: string
- *               duration:
+ *               Duration:
  *                 type: string
- *               distance:
+ *               Distance:
  *                 type: string
- *               coordinates:
+ *               Coordinates:
  *                 type: string
  *     responses:
  *       201:
@@ -118,41 +104,44 @@ const getRoutes = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 route_id:
+ *                 Route_ID:
  *                   type: integer
- *                 user_id:
+ *                 User_ID:
  *                   type: integer
- *                 route_name:
+ *                 Route_Name:
  *                   type: string
- *                 description:
+ *                 Description:
  *                   type: string
- *                 duration:
+ *                 Duration:
  *                   type: string
- *                 distance:
+ *                 Distance:
  *                   type: string
- *                 coordinates:
+ *                 Coordinates:
  *                   type: string
- *                 created_at:
+ *                 Created_At:
  *                   type: string
- *                 updated_at:
+ *                 Updated_At:
  *                   type: string
  */
 const createRoute = async (req, res) => {
   const { User_ID, Route_Name, Description, Duration, Distance, Coordinates } = req.body;
 
+  // Validar que los campos User_ID y Route_Name no estén vacíos
+  if (!User_ID || !Route_Name) {
+    return res.status(400).json({ message: 'User_ID y Route_Name son obligatorios' });
+  }
+
   try {
-    const newRoute = await sequelize.query(`
-      INSERT INTO "ADMIN"."Routes" 
-        ("User_ID", "Route_Name", "Description", "Duration", "Distance", "Coordinates", "createdAt", "updatedAt")
-      VALUES 
-        (:User_ID, :Route_Name, :Description, :Duration, :Distance, :Coordinates, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING "Route_ID", "User_ID", "Route_Name", "Description", "Duration", "Distance", "Coordinates", "createdAt", "updatedAt"
-    `, {
-      replacements: { User_ID, Route_Name, Description, Duration, Distance, Coordinates },
-      type: sequelize.QueryTypes.INSERT,
+    const newRoute = await Route.create({
+      User_ID,
+      Route_Name,
+      Description,
+      Duration,
+      Distance,
+      Coordinates,
     });
 
-    res.status(201).json(newRoute[0]);
+    res.status(201).json(newRoute);
   } catch (error) {
     console.error('Error al crear la ruta:', error);
     res.status(500).json({ message: 'Error al crear la ruta' });
@@ -178,17 +167,17 @@ const createRoute = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               route_name:
+ *               Route_Name:
  *                 type: string
- *               description:
+ *               Description:
  *                 type: string
- *               duration:
+ *               Duration:
  *                 type: string
- *               distance:
+ *               Distance:
  *                 type: string
- *               coordinates:
+ *               Coordinates:
  *                 type: string
  *     responses:
  *       200:
@@ -201,29 +190,22 @@ const updateRoute = async (req, res) => {
   const { User_ID, Route_Name, Description, Duration, Distance, Coordinates } = req.body;
 
   try {
-    const route = await sequelize.query(`
-      SELECT * FROM "ADMIN"."Routes" 
-      WHERE "Route_ID" = :Route_ID
-    `, {
-      replacements: { Route_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const route = await Route.findByPk(Route_ID);
 
-    if (!route || route.length === 0) {
+    if (!route) {
       return res.status(404).json({ message: 'Ruta no encontrada' });
     }
 
-    await sequelize.query(`
-      UPDATE "ADMIN"."Routes"
-      SET "User_ID" = :User_ID, "Route_Name" = :Route_Name, "Description" = :Description, 
-          "Duration" = :Duration, "Distance" = :Distance, "Coordinates" = :Coordinates, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "Route_ID" = :Route_ID
-    `, {
-      replacements: { User_ID, Route_Name, Description, Duration, Distance, Coordinates, Route_ID },
-      type: sequelize.QueryTypes.UPDATE,
-    });
+    route.User_ID = User_ID;
+    route.Route_Name = Route_Name;
+    route.Description = Description;
+    route.Duration = Duration;
+    route.Distance = Distance;
+    route.Coordinates = Coordinates;
 
-    res.json({ message: 'Ruta actualizada correctamente' });
+    await route.save();
+
+    res.json(route);
   } catch (error) {
     console.error('Error al actualizar la ruta:', error);
     res.status(500).json({ message: 'Error al actualizar la ruta' });
@@ -252,25 +234,13 @@ const deleteRoute = async (req, res) => {
   const { Route_ID } = req.params;
 
   try {
-    const route = await sequelize.query(`
-      SELECT * FROM "ADMIN"."Routes"
-      WHERE "Route_ID" = :Route_ID
-    `, {
-      replacements: { Route_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const route = await Route.findByPk(Route_ID);
 
-    if (!route || route.length === 0) {
+    if (!route) {
       return res.status(404).json({ message: 'Ruta no encontrada' });
     }
 
-    await sequelize.query(`
-      DELETE FROM "ADMIN"."Routes" 
-      WHERE "Route_ID" = :Route_ID
-    `, {
-      replacements: { Route_ID },
-      type: sequelize.QueryTypes.DELETE,
-    });
+    await route.destroy();
 
     res.json({ message: 'Ruta eliminada con éxito' });
   } catch (error) {

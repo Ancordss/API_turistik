@@ -1,31 +1,31 @@
-// models/question.model.js
-
 module.exports = (sequelize, Sequelize) => {
   const Question = sequelize.define('Question', {
     Question_ID: {
       type: Sequelize.INTEGER,
       primaryKey: true,
-      autoIncrement: true,  // Asegúrate de que sea auto incremental
-    },
-    Place_ID: {
-      type: Sequelize.INTEGER,
-      references: {
-        model: 'TouristPlaces',  // Hace referencia a la tabla Tourist_Places
-        key: 'Place_ID',
-      },
-      allowNull: false,  // El Place_ID es obligatorio
+      autoIncrement: true,  // Auto incrementable
     },
     Question_Text: {
-      type: Sequelize.STRING(1000),  // La pregunta puede ser bastante extensa
-      allowNull: false,  // La pregunta no puede ser nula
+      type: Sequelize.STRING(1000),  // Pregunta generada por la IA
+      allowNull: false,  // No puede ser nula
+    },
+    AI_Logic: {
+      type: Sequelize.STRING(2000),  // Lógica o algoritmo usado para generar la pregunta
+      allowNull: false,  // No puede ser nula
     },
     Answer_Type: {
-      type: Sequelize.STRING(50),  // El tipo de respuesta puede ser 'multiple_choice', 'text', etc.
+      type: Sequelize.STRING(50),  // Tipo de respuesta (ejemplo: "multiple_choice", "text", etc.)
+      allowNull: false,  // No puede ser nula
+    },
+    Is_Active: {
+      type: Sequelize.BOOLEAN,  // Indica si la pregunta está activa o no
+      defaultValue: true,  // Por defecto es true
+    },
+    Date_Created: {
+      type: Sequelize.DATE,  // Fecha de creación
+      defaultValue: Sequelize.NOW,  // Establece la fecha actual como valor por defecto
     },
   });
-
-  // Establecer la relación con el modelo TouristPlace
-  Question.belongsTo(sequelize.models.TouristPlace, { foreignKey: 'Place_ID' });
 
   return Question;
 };

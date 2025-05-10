@@ -1,31 +1,23 @@
-const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
-
+const { RoutesHistory, sequelize } = require('../config/config');  // Asegúrate de importar correctamente el modelo
 const jwt = require('jsonwebtoken');
 
 // Middleware para verificar el token
 const verifyToken = (req, res, next) => {
-  // Obtener el token de los encabezados
   const token = req.headers['authorization'];
 
   if (!token) {
     return res.status(403).json({ message: 'Acceso denegado, token no encontrado' });
   }
 
-  // Verificar el token
   try {
     const decoded = jwt.verify(token, 'mi_clave_secreta');
-    req.userId = decoded.userId;
-    req.userType = decoded.userType;
+    req.User_ID = decoded.User_ID;
+    req.User_Type = decoded.User_Type;
     next();  // Pasa al siguiente middleware o controlador
   } catch (error) {
     return res.status(401).json({ message: 'Token inválido o expirado' });
   }
 };
-
-module.exports = { verifyToken };
-
-
-
 
 /**
  * @swagger
@@ -42,38 +34,36 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   history_id:
+ *                   History_ID:
  *                     type: integer
- *                   user_id:
+ *                   User_ID:
  *                     type: integer
- *                   route_id:
+ *                   Route_ID:
  *                     type: integer
- *                   route_date:
+ *                   Route_Date:
  *                     type: string
- *                   user_name:
+ *                   User_Name:
  *                     type: string
- *                   route_name:
+ *                   Route_Name:
  *                     type: string
  */
 const getRoutesHistory = async (req, res) => {
   try {
-    const routesHistory = await sequelize.query(`
-      SELECT
-        rh."History_ID",
-        rh."User_ID",
-        rh."Route_ID",
-        rh."Route_Date",
-        u."Name" AS "UserName",
-        r."Route_Name" AS "RouteName"
-      FROM
-        "ADMIN"."RoutesHistories" rh
-      JOIN
-        "ADMIN"."Users" u ON u."User_ID" = rh."User_ID"
-      JOIN
-        "ADMIN"."Routes" r ON r."Route_ID" = rh."Route_ID"
-    `);
+    const routesHistory = await RoutesHistory.findAll({
+      attributes: ['History_ID', 'User_ID', 'Route_ID', 'Route_Date'],
+      include: [
+        {
+          model: sequelize.models.User,
+          attributes: ['Name'],
+        },
+        {
+          model: sequelize.models.Route,
+          attributes: ['Route_Name'],
+        },
+      ],
+    });
 
-    res.json(routesHistory[0]);
+    res.json(routesHistory);
   } catch (error) {
     console.error('Error al obtener el historial de rutas:', error);
     res.status(500).json({ message: 'Error al obtener el historial de rutas' });
@@ -92,9 +82,9 @@ const getRoutesHistory = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               route_id:
+ *               Route_ID:
  *                 type: integer
  *     responses:
  *       201:
@@ -104,31 +94,25 @@ const getRoutesHistory = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 history_id:
+ *                 History_ID:
  *                   type: integer
- *                 user_id:
+ *                 User_ID:
  *                   type: integer
- *                 route_id:
+ *                 Route_ID:
  *                   type: integer
- *                 route_date:
+ *                 Route_Date:
  *                   type: string
  */
 const createRouteHistory = async (req, res) => {
   const { User_ID, Route_ID } = req.body;
 
   try {
-    const newRouteHistory = await sequelize.query(`
-      INSERT INTO "ADMIN"."RoutesHistories" 
-        ("User_ID", "Route_ID", "Route_Date", "createdAt", "updatedAt")
-      VALUES
-        (:User_ID, :Route_ID, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING "History_ID", "User_ID", "Route_ID", "Route_Date"
-    `, {
-      replacements: { User_ID, Route_ID },
-      type: sequelize.QueryTypes.INSERT,
+    const newRouteHistory = await RoutesHistory.create({
+      User_ID,
+      Route_ID,
     });
 
-    res.status(201).json(newRouteHistory[0]);
+    res.status(201).json(newRouteHistory);
   } catch (error) {
     console.error('Error al crear la entrada de historial de ruta:', error);
     res.status(500).json({ message: 'Error al crear la entrada de historial de ruta' });
@@ -154,9 +138,9 @@ const createRouteHistory = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               User_ID:
  *                 type: integer
- *               route_id:
+ *               Route_ID:
  *                 type: integer
  *     responses:
  *       200:
@@ -169,26 +153,16 @@ const updateRouteHistory = async (req, res) => {
   const { User_ID, Route_ID } = req.body;
 
   try {
-    const routeHistory = await sequelize.query(`
-      SELECT * FROM "ADMIN"."RoutesHistories"
-      WHERE "History_ID" = :History_ID
-    `, {
-      replacements: { History_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const routeHistory = await RoutesHistory.findByPk(History_ID);
 
-    if (!routeHistory || routeHistory.length === 0) {
+    if (!routeHistory) {
       return res.status(404).json({ message: 'Historial de ruta no encontrado' });
     }
 
-    await sequelize.query(`
-      UPDATE "ADMIN"."RoutesHistories"
-      SET "User_ID" = :User_ID, "Route_ID" = :Route_ID, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "History_ID" = :History_ID
-    `, {
-      replacements: { User_ID, Route_ID, History_ID },
-      type: sequelize.QueryTypes.UPDATE,
-    });
+    routeHistory.User_ID = User_ID;
+    routeHistory.Route_ID = Route_ID;
+
+    await routeHistory.save();
 
     res.json({ message: 'Historial de ruta actualizado correctamente' });
   } catch (error) {
@@ -219,25 +193,13 @@ const deleteRouteHistory = async (req, res) => {
   const { History_ID } = req.params;
 
   try {
-    const routeHistory = await sequelize.query(`
-      SELECT * FROM "ADMIN"."RoutesHistories"
-      WHERE "History_ID" = :History_ID
-    `, {
-      replacements: { History_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const routeHistory = await RoutesHistory.findByPk(History_ID);
 
-    if (!routeHistory || routeHistory.length === 0) {
+    if (!routeHistory) {
       return res.status(404).json({ message: 'Historial de ruta no encontrado' });
     }
 
-    await sequelize.query(`
-      DELETE FROM "ADMIN"."RoutesHistories"
-      WHERE "History_ID" = :History_ID
-    `, {
-      replacements: { History_ID },
-      type: sequelize.QueryTypes.DELETE,
-    });
+    await routeHistory.destroy();
 
     res.json({ message: 'Historial de ruta eliminado con éxito' });
   } catch (error) {

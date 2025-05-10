@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/config');  // Asegúrate de importar correctamente sequelize
+const { Question } = require('../config/config');  // Asegúrate de importar correctamente el modelo
 const jwt = require('jsonwebtoken');
 
 // Middleware para verificar el token
@@ -23,8 +23,6 @@ const verifyToken = (req, res, next) => {
 
 module.exports = { verifyToken };
 
-
-
 /**
  * @swagger
  * /api/questions:
@@ -40,15 +38,17 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   question_id:
+ *                   Question_ID:
  *                     type: integer
- *                   place_id:
- *                     type: integer
- *                   question_text:
+ *                   Question_Text:
  *                     type: string
- *                   answer_type:
+ *                   AI_Logic:
  *                     type: string
- *                   place_name:
+ *                   Answer_Type:
+ *                     type: string
+ *                   Is_Active:
+ *                     type: boolean
+ *                   Date_Created:
  *                     type: string
  */
 const getQuestions = async (req, res) => {
@@ -56,7 +56,6 @@ const getQuestions = async (req, res) => {
     const [questions, metadata] = await sequelize.query(`
       SELECT * FROM "ADMIN"."Questions" 
     `);
-
     res.json(questions);
   } catch (error) {
     console.error('Error al obtener las preguntas:', error);
@@ -76,11 +75,11 @@ const getQuestions = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               place_id:
- *                 type: integer
- *               question_text:
+ *               Question_Text:
  *                 type: string
- *               answer_type:
+ *               AI_Logic:
+ *                 type: string
+ *               Answer_Type:
  *                 type: string
  *     responses:
  *       201:
@@ -90,35 +89,30 @@ const getQuestions = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 question_id:
+ *                 Question_ID:
  *                   type: integer
- *                 place_id:
- *                   type: integer
- *                 question_text:
+ *                 Question_Text:
  *                   type: string
- *                 answer_type:
+ *                 AI_Logic:
  *                   type: string
- *                 created_at:
+ *                 Answer_Type:
  *                   type: string
- *                 updated_at:
+ *                 Is_Active:
+ *                   type: boolean
+ *                 Date_Created:
  *                   type: string
  */
 const createQuestion = async (req, res) => {
-  const { Place_ID, Question_Text, Answer_Type } = req.body;
+  const { Question_Text, AI_Logic, Answer_Type } = req.body;
 
   try {
-    const newQuestion = await sequelize.query(`
-      INSERT INTO "ADMIN"."Questions" 
-        ("Place_ID", "Question_Text", "Answer_Type", "createdAt", "updatedAt")
-      VALUES 
-        (:Place_ID, :Question_Text, :Answer_Type, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING "Question_ID", "Place_ID", "Question_Text", "Answer_Type", "createdAt", "updatedAt"
-    `, {
-      replacements: { Place_ID, Question_Text, Answer_Type },
-      type: sequelize.QueryTypes.INSERT,
+    const newQuestion = await Question.create({
+      Question_Text,
+      AI_Logic,
+      Answer_Type,
     });
 
-    res.status(201).json(newQuestion[0]);
+    res.status(201).json(newQuestion);
   } catch (error) {
     console.error('Error al crear la pregunta:', error);
     res.status(500).json({ message: 'Error al crear la pregunta' });
@@ -144,11 +138,11 @@ const createQuestion = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               place_id:
- *                 type: integer
- *               question_text:
+ *               Question_Text:
  *                 type: string
- *               answer_type:
+ *               AI_Logic:
+ *                 type: string
+ *               Answer_Type:
  *                 type: string
  *     responses:
  *       200:
@@ -158,31 +152,22 @@ const createQuestion = async (req, res) => {
  */
 const updateQuestion = async (req, res) => {
   const { Question_ID } = req.params;
-  const { Place_ID, Question_Text, Answer_Type } = req.body;
+  const { Question_Text, AI_Logic, Answer_Type } = req.body;
 
   try {
-    const question = await sequelize.query(`
-      SELECT * FROM "ADMIN"."Questions" 
-      WHERE "Question_ID" = :Question_ID
-    `, {
-      replacements: { Question_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const question = await Question.findByPk(Question_ID);
 
-    if (!question || question.length === 0) {
+    if (!question) {
       return res.status(404).json({ message: 'Pregunta no encontrada' });
     }
 
-    await sequelize.query(`
-      UPDATE "ADMIN"."Questions"
-      SET "Place_ID" = :Place_ID, "Question_Text" = :Question_Text, "Answer_Type" = :Answer_Type, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "Question_ID" = :Question_ID
-    `, {
-      replacements: { Place_ID, Question_Text, Answer_Type, Question_ID },
-      type: sequelize.QueryTypes.UPDATE,
-    });
+    question.Question_Text = Question_Text;
+    question.AI_Logic = AI_Logic;
+    question.Answer_Type = Answer_Type;
 
-    res.json({ message: 'Pregunta actualizada correctamente' });
+    await question.save();
+
+    res.json(question);
   } catch (error) {
     console.error('Error al actualizar la pregunta:', error);
     res.status(500).json({ message: 'Error al actualizar la pregunta' });
@@ -211,25 +196,13 @@ const deleteQuestion = async (req, res) => {
   const { Question_ID } = req.params;
 
   try {
-    const question = await sequelize.query(`
-      SELECT * FROM "ADMIN"."Questions"
-      WHERE "Question_ID" = :Question_ID
-    `, {
-      replacements: { Question_ID },
-      type: sequelize.QueryTypes.SELECT,
-    });
+    const question = await Question.findByPk(Question_ID);
 
-    if (!question || question.length === 0) {
+    if (!question) {
       return res.status(404).json({ message: 'Pregunta no encontrada' });
     }
 
-    await sequelize.query(`
-      DELETE FROM "ADMIN"."Questions" 
-      WHERE "Question_ID" = :Question_ID
-    `, {
-      replacements: { Question_ID },
-      type: sequelize.QueryTypes.DELETE,
-    });
+    await question.destroy();
 
     res.json({ message: 'Pregunta eliminada con éxito' });
   } catch (error) {
