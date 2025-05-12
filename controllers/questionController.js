@@ -1,6 +1,7 @@
-const { Question } = require('../config/config');  // Asegúrate de importar correctamente el modelo
+const { sequelize }  = require('../config/config');  // Asegúrate de importar correctamente el modelo
+const Question  = require('../models/question.model.js');
 const jwt = require('jsonwebtoken');
-
+// const { Sequelize } = require('sequelize');
 // Middleware para verificar el token
 const verifyToken = (req, res, next) => {
   // Obtener el token de los encabezados
@@ -53,9 +54,11 @@ module.exports = { verifyToken };
  */
 const getQuestions = async (req, res) => {
   try {
-    const [questions, metadata] = await sequelize.query(`
+    const questions = await sequelize.query(`
       SELECT * FROM "ADMIN"."Questions" 
-    `);
+    `,{
+      type: sequelize.QueryTypes.SELECT,
+    });
     res.json(questions);
   } catch (error) {
     console.error('Error al obtener las preguntas:', error);

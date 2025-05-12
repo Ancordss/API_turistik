@@ -1,7 +1,10 @@
 const express = require('express');
-const { getUserAnswers, createUserAnswer, updateUserAnswer, deleteUserAnswer, checkMultipleUserAnswers } = require('../controllers/userAnswerController');  // Asegúrate de importar el controlador
+const { getUserAnswers, createUserAnswer, updateUserAnswer, deleteUserAnswer, checkMultipleUserAnswers, getCurrentUserAnswers, verifyToken } = require('../controllers/userAnswerController');  // Asegúrate de importar el controlador
 
 const router = express.Router();
+
+// Ruta para obtener todas las respuestas del usuario por query param
+router.get('/me', getCurrentUserAnswers);
 
 // Ruta para obtener todas las respuestas de un usuario
 router.get('/:userId', getUserAnswers);

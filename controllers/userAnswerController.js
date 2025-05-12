@@ -10,22 +10,118 @@ const verifyToken = (req, res, next) => {
   // Obtener el token de los encabezados
   const token = req.headers['authorization'];
 
+
   if (!token) {
     return res.status(403).json({ message: 'Acceso denegado, token no encontrado' });
   }
 
   // Verificar el token
+
   try {
-    const decoded = jwt.verify(token, 'mi_clave_secreta');
+    const decoded = jwt.verify(token, 'carlospendejo1222');
     req.userId = decoded.userId;
     req.userType = decoded.userType;
     next();  // Pasa al siguiente middleware o controlador
   } catch (error) {
+    console.error('Error al verificar el token:', error);
     return res.status(401).json({ message: 'Token inválido o expirado' });
   }
 };
 
-module.exports = { verifyToken };
+
+
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *
+ * /api/userAnswers/me:
+ *   get:
+ *     tags:
+ *       - UserAnswers
+ *     summary: Obtener todas las respuestas del usuario autenticado junto con las preguntas
+ *     description: |
+ *       Retorna un arreglo con todas las respuestas que el usuario autenticado ha proporcionado,
+ *       incluyendo el texto de cada pregunta asociada.  
+ *       **Requiere un encabezado `Authorization: Bearer <token>`**.
+ *     security:
+ *       - bearerAuth: []          # ← Esto hace que Swagger UI envie el header
+ *     responses:
+ *       200:
+ *         description: Lista de preguntas y respuestas del usuario autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Answer_ID:
+ *                     type: integer
+ *                     example: 15
+ *                   User_ID:
+ *                     type: integer
+ *                     example: 3
+ *                   Question_ID:
+ *                     type: integer
+ *                     example: 7
+ *                   Answer:
+ *                     type: string
+ *                     example: "Museos"
+ *                   Date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-05-11T18:23:45Z"
+ *                   UserName:
+ *                     type: string
+ *                     example: "Carlos"
+ *                   Question_Text:
+ *                     type: string
+ *                     example: "¿Que tipo de lugares prefieres visitar?"
+ *       401:
+ *         description: Usuario no autenticado o token invalido
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+const getCurrentUserAnswers = async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ message: 'Debes proporcionar el userId como query param (?userId=...)' });
+  }
+  try {
+    const userAnswers = await sequelize.query(`
+      SELECT
+        ua."Answer_ID",
+        ua."User_ID",
+        ua."Question_ID",
+        ua."Answer",
+        ua."Date",
+        u."Name" AS "UserName",
+        q."Question_Text"
+      FROM
+        "ADMIN"."UserAnswers" ua
+      JOIN
+        "ADMIN"."Users" u ON u."User_ID" = ua."User_ID"
+      JOIN
+        "ADMIN"."Questions" q ON q."Question_ID" = ua."Question_ID"
+      WHERE
+        ua."User_ID" = :userId
+    `, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+    res.json(userAnswers);
+  } catch (error) {
+    console.error('Error al obtener las respuestas del usuario autenticado:', error);
+    res.status(500).json({ message: 'Error al obtener las respuestas del usuario autenticado' });
+  }
+};
+
 
 
 
@@ -71,7 +167,7 @@ const getUserAnswers = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const [userAnswers, metadata] = await sequelize.query(`
+    const userAnswers = await sequelize.query(`
       SELECT
         ua."Answer_ID",
         ua."User_ID",
@@ -353,4 +449,4 @@ const deleteUserAnswer = async (req, res) => {
 };
 
 
-module.exports = { getUserAnswers, createUserAnswer, updateUserAnswer, deleteUserAnswer, checkMultipleUserAnswers };
+module.exports = { verifyToken, getUserAnswers, createUserAnswer, updateUserAnswer, deleteUserAnswer, checkMultipleUserAnswers, getCurrentUserAnswers };

@@ -286,7 +286,7 @@ const loginUser = async (req, res) => {
         userType: user.User_Type,
         email: user.Email
       },
-      process.env.JWT_SECRET || 'mi_clave_secreta',  // Usar variable de entorno o fallback
+      'carlospendejo1222',  // Usar variable de entorno o fallback
       { expiresIn: '24h' }  // El token expira en 24 horas
     );
 
