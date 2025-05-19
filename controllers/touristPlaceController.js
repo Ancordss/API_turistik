@@ -38,12 +38,12 @@ module.exports = { verifyToken };
  *               items:
  *                 type: object
  *                 properties:
- *                   Place_ID:
+ *                   TouristPlace_ID:
  *                     type: integer
- *                   Name:
+ *                   Places:
  *                     type: string
- *                   Description:
- *                     type: string
+ *                   Raw_data:
+ *                     type: Blob
  *                   Category:
  *                     type: string
  *                   Location:
@@ -75,10 +75,10 @@ const getTouristPlaces = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               Name:
+ *               Places:
  *                 type: string
- *               Description:
- *                 type: string
+ *               Raw_data:
+ *                 type: Blob
  *               Category:
  *                 type: string
  *               Location:
@@ -88,8 +88,8 @@ const getTouristPlaces = async (req, res) => {
  *               Coordinates:
  *                 type: string
  *             required:
- *               - Name
- *               - Description
+ *               - Places
+ *               - Raw_data
  *               - Category
  *               - Location
  *               - Image
@@ -102,12 +102,12 @@ const getTouristPlaces = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 Place_ID:
+ *                 TouristPlace_ID:
  *                   type: integer
- *                 Name:
+ *                 Places:
  *                   type: string
- *                 Description:
- *                   type: string
+ *                 Raw_data:
+ *                   type: Blob
  *                 Category:
  *                   type: string
  *                 Location:
@@ -118,12 +118,12 @@ const getTouristPlaces = async (req, res) => {
  *                   type: string
  */
 const createTouristPlace = async (req, res) => {
-  const { Name, Description, Category, Location, Image, Coordinates } = req.body;
+  const { Places, Raw_data, Category, Location, Image, Coordinates } = req.body;
 
   try {
     const newPlace = await TouristPlace.create({
-      Name,
-      Description,
+      Places,
+      Raw_data,
       Category,
       Location,
       Image,   // Almacena la URL o dirección de la imagen
@@ -144,7 +144,7 @@ const createTouristPlace = async (req, res) => {
  *     summary: Actualizar un lugar turístico existente
  *     parameters:
  *       - in: path
- *         name: Place_ID
+ *         name: TouristPlace_ID
  *         required: true
  *         description: ID del lugar turístico a actualizar
  *         schema:
@@ -156,10 +156,10 @@ const createTouristPlace = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               Name:
+ *               Places:
  *                 type: string
- *               Description:
- *                 type: string
+ *               Raw_data:
+ *                 type: Blob
  *               Category:
  *                 type: string
  *               Location:
@@ -176,12 +176,12 @@ const createTouristPlace = async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 Place_ID:
+ *                 TouristPlace_ID:
  *                   type: integer
- *                 Name:
+ *                 Places:
  *                   type: string
- *                 Description:
- *                   type: string
+ *                 Raw_data:
+ *                   type: Blob
  *                 Category:
  *                   type: string
  *                 Location:
@@ -194,18 +194,18 @@ const createTouristPlace = async (req, res) => {
  *         description: Lugar turístico no encontrado
  */
 const updateTouristPlace = async (req, res) => {
-  const { Place_ID } = req.params;
-  const { Name, Description, Category, Location, Image, Coordinates } = req.body;
+  const { TouristPlace_ID } = req.params;
+  const { Places, Raw_data, Category, Location, Image, Coordinates } = req.body;
 
   try {
-    const place = await TouristPlace.findByPk(Place_ID);
+    const place = await TouristPlace.findByPk(TouristPlace_ID);
 
     if (!place) {
       return res.status(404).json({ message: 'Lugar turístico no encontrado' });
     }
 
-    place.Name = Name;
-    place.Description = Description;
+    place.Places = Places;
+    place.Raw_data = Raw_data;
     place.Category = Category;
     place.Location = Location;
     place.Image = Image;
@@ -222,12 +222,12 @@ const updateTouristPlace = async (req, res) => {
 
 /**
  * @swagger
- * /api/touristPlaces/{Place_ID}:
+ * /api/touristPlaces/{TouristPlace_ID}:
  *   delete:
  *     summary: Eliminar un lugar turístico
  *     parameters:
  *       - in: path
- *         name: Place_ID
+ *         name: TouristPlace_ID
  *         required: true
  *         description: ID del lugar turístico a eliminar
  *         schema:
@@ -239,10 +239,10 @@ const updateTouristPlace = async (req, res) => {
  *         description: Lugar turístico no encontrado
  */
 const deleteTouristPlace = async (req, res) => {
-  const { Place_ID } = req.params;
+  const { TouristPlace_ID } = req.params;
 
   try {
-    const place = await TouristPlace.findByPk(Place_ID);
+    const place = await TouristPlace.findByPk(TouristPlace_ID);
 
     if (!place) {
       return res.status(404).json({ message: 'Lugar turístico no encontrado' });

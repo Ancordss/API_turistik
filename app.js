@@ -1,6 +1,7 @@
 const express = require('express');
 require('dotenv').config();
 const cors = require('cors');
+const bodyParser = require('body-parser');
 const { sequelize, syncDatabase } = require('./config/config');  // Asegúrate de importar sequelize correctamente
 const userRoutes = require('./routes/userRoutes');  // Importa las rutas de usuario
 const touristPlaceRoutes = require('./routes/touristPlaceRoutes');  // Importa las rutas de lugares turísticos
@@ -22,12 +23,16 @@ const verifyToken = require('./middleware/verifyToken');  // Importar el middlew
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configurar CORS
+// Middleware para manejar CORS
 app.use(cors({
   origin: '*', // En producción, cambiar por la URL específica del frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Middleware para procesar JSON
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configuración de Swagger
 const swaggerOptions = {
@@ -117,7 +122,7 @@ async function startServer() {
     // Rutas protegidas con verificación de token (por ejemplo, cualquier ruta que implique manejo de usuarios y rutas)
 
     app.use('/api/routes', verifyToken, routeRoutes);  // Aseguramos que las rutas de rutas estén protegidas
-    app.use('/api/placesInRoutes', verifyToken, placesInRouteRoutes); // Protegemos rutas de lugares en rutas
+    app.use('/api/placesInRoutes', placesInRouteRoutes); // Protegemos rutas de lugares en rutas
 
     // Iniciamos el servidor solo después de que la base de datos se haya sincronizado
     app.listen(PORT, () => {

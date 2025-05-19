@@ -1,5 +1,5 @@
 const express = require('express');
-const { getPlacesInRoutes, createPlaceInRoute, updatePlaceInRoute, deletePlaceInRoute } = require('../controllers/placesInRouteController');  // Asegúrate de importar correctamente el controlador
+const { getPlacesInRoutes, createPlaceInRoute, updatePlaceInRoute, deletePlaceInRoute, getPlacesInRoutesDetailed } = require('../controllers/placesInRouteController');  // Asegúrate de importar correctamente el controlador
 
 const router = express.Router();
 
@@ -14,5 +14,8 @@ router.put('/:Route_ID/:Place_ID', updatePlaceInRoute);
 
 // Ruta para eliminar una relación de lugar en ruta por ID
 router.delete('/:Route_ID/:Place_ID', deletePlaceInRoute);
+
+// Ruta para obtener lugares en rutas con detalles completos
+router.get('/detailed/:userId', getPlacesInRoutesDetailed);
 
 module.exports = router;

@@ -126,27 +126,52 @@ const getRoutes = async (req, res) => {
 const createRoute = async (req, res) => {
   const { User_ID, Route_Name, Description, Duration, Distance, Coordinates } = req.body;
 
-  // Validar que los campos User_ID y Route_Name no estén vacíos
   if (!User_ID || !Route_Name) {
     return res.status(400).json({ message: 'User_ID y Route_Name son obligatorios' });
   }
-
+   // get the time to insert
+   const createdAt = new Date();
+   const updatedAt = new Date();
+   const Registration_Date = new Date();
   try {
-    const newRoute = await Route.create({
-      User_ID,
-      Route_Name,
-      Description,
-      Duration,
-      Distance,
-      Coordinates,
+    // 1. Ejecutar el INSERT manualmente
+    const insertSql = `
+      INSERT INTO ADMIN."Routes" ("User_ID", "Route_Name", "Description", "Duration", "Distance", "Coordinates", "createdAt", "updatedAt", "Registration_Date")
+      VALUES (:User_ID, :Route_Name, :Description, :Duration, :Distance, :Coordinates, :createdAt, :updatedAt, :Registration_Date)
+    `;
+
+    await sequelize.query(insertSql, {
+      replacements: { User_ID, Route_Name, Description, Duration, Distance, Coordinates, createdAt, updatedAt, Registration_Date },
     });
 
-    res.status(201).json(newRoute);
+    // 2. Recuperar el último ID para este usuario (ordenado por fecha o secuencia si es posible)
+    const result = await sequelize.query(
+      `
+      SELECT "Route_ID" FROM (
+        SELECT "Route_ID" FROM ADMIN."Routes"
+        WHERE "User_ID" = :User_ID
+        ORDER BY "Routes"."createdAt" DESC
+      ) WHERE ROWNUM = 1
+      `,
+      {
+        replacements: { User_ID },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    console.log('result', result);
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: 'Ruta creada pero no se pudo recuperar el ID' });
+    }
+
+    res.json({ Route_ID: result[0].Route_ID });
+
   } catch (error) {
     console.error('Error al crear la ruta:', error);
     res.status(500).json({ message: 'Error al crear la ruta' });
   }
 };
+
 
 /**
  * @swagger

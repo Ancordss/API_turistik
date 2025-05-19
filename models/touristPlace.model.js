@@ -2,17 +2,17 @@
 
 module.exports = (sequelize, Sequelize) => {
   const TouristPlace = sequelize.define('TouristPlace', {
-    Place_ID: {
+    TouristPlace_ID: {
       type: Sequelize.INTEGER,
       primaryKey: true,
       autoIncrement: true,  // Asegúrate de que sea auto incremental
     },
-    Name: {
+    Places: {
       type: Sequelize.STRING(200),
       allowNull: false,  // El nombre del lugar no puede ser nulo
     },
-    Description: {
-      type: Sequelize.STRING(4000),  // Descripción del lugar, puede ser muy extensa
+    Raw_data: {
+      type: Sequelize.JSON,  // Descripción del lugar, puede ser muy extensa
     },
     Category: {
       type: Sequelize.STRING(100),  // Categoría como 'playa', 'montaña', etc.

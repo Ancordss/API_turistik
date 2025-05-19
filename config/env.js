@@ -7,7 +7,7 @@ module.exports = {
   DB_CONNECT_STRING: process.env.DB_CONNECT_STRING,
   ssl: process.env.ssl === 'true',  // Convertir a booleano si es necesario
   pool: {
-    max: 5,
+    max: 10,
     min: 0,
     idle: 10000,
   },
