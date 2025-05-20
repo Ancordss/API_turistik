@@ -332,7 +332,7 @@ const getPlacesInRoutesDetailed = async (req, res) => {
     `;
 
     // Ejecutar la consulta
-    const [results] = await sequelize.query(query, {
+    const results = await sequelize.query(query, {
       replacements: [userIdNum],
       type: sequelize.QueryTypes.SELECT,
       raw: true
